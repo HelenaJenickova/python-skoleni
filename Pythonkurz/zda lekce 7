@@ -1,0 +1,85 @@
+/* Samostatná práce */
+-- Určete zaměstnance s nejvyšší tržbou prodejů.
+select z.idzamestnanec, z.jmeno, z.prijmeni, sum(u.castka) as trzba from uctenka u join zamestnanec z on z.idzamestnanec = u.idzamestnanec 
+group by z.idzamestnanec, z.jmeno, z.prijmeni order by trzba desc;
+-- Určete zaměstnance s nejvyšší tržbou, zjistěte kolik let pracuje nebo pracoval, výsledky seřaďte podle celkové Tržby 
+select  z.idzamestnanec, z.jmeno, z.prijmeni, (coalesce(z.datumodchodu, date()) - z.datumnastupu) dobazamestnani, sum(u.castka) as trzba
+from zamestnanec z join uctenka u on u.idzamestnanec = z.idzamestnanec group by z.idzamestnanec, z.jmeno, z.prijmeni, dobazamestnani order by trzba desc;
+-- BONUSY
+-- Jaké prodejny zásobuje sklad v Buštěhradu (ID 5).
+select s.nazev, p.nazev from skladprodejna sp join prodejna p on sp.idprodejna = p.idprodejna
+join sklad s on s.idsklad = sp.idsklad and s.idsklad = 5;
+-- Jaké sklady zásobují prodejnu Slaný 1 (ID 135).
+select p.nazev as prodejna, s.nazev as sklad, s.typ from prodejna p 
+join skladprodejna sp on sp.idprodejna = p.IDProdejna join sklad s on s.idsklad = sp.IDSklad where p.idprodejna = 135;
+-- Zjistěte kolik zákazníků máme ve městě Bílovec a kolik různých adres máme v tomto městě registrovaných.
+
+-- Zjistěte kolik prodejen a plánovaných zaměstnanců máme v jednotlivých městech, výsledek seřaďte podle počtu prodejen od nejvyššího počtu.
+
+/* Left join */
+-- Kolik zákazníků máme v každém z měst? Zobraz i města, kde není registrovaný žádný zákazník. Zobraz jen města, které mají maximálně 5 zákazníků
+select a.mesto, count(distinct idzakaznik) as pocet from zakaznik z left join adresa a on z.idadresa = a.idadresa group by a.mesto having pocet < 6;
+-- Zjistěte jaký je podíl prodejů registrovaných zákazníků na jednotlivých prodejnách. Zahrňte i prodejny kde nebyl žádný prodej.
+select p.nazev, count(iductenka) as prodejucelkem, count(idzakaznik) as prodejusezakaznikem, 
+round(cast(count(idzakaznik) as float)/cast(count(iductenka) as float),2) podilregistrovanychprodeju
+from prodejna p left join uctenka u on u.idprodejna = p.idprodejna group by p.nazev order by prodejucelkem;
+
+/* Samostatná práce */
+-- Kolik zaměstnanců mají jednotlivé prodejny. Vypište i prodejny, které nemají žádné zaměstnance
+select p.idprodejna, p.nazev, count(z.idzamestnanec) as pocetzamestnancu, sum(z.uvazek) uvazek
+from prodejna p left join zamestnanec z on p.idprodejna = z.idprodejna 
+and z.datumodchodu is null
+group by p.idprodejna, p.nazev order by pocetzamestnancu;
+
+-- Pro novou reklamní kampaň potřebujeme zjistit Zákazníky, které máme zaregistrované a ještě nenakoupili.
+select z.idzakaznik, z.jmeno, z.prijmeni, u.iductenka from zakaznik z left join uctenka u on u.idzakaznik = z.idzakaznik
+where u.iductenka is null;
+
+-- Zjistěte, kde (v jakých městech) máme takových zákazníků nejvíce a proto by se do nich měla soustředit naše reklamní kampaň.
+select  a.mesto, count(z.idzakaznik) as pocetzakaznikubeznakupu from zakaznik z left join uctenka u on u.idzakaznik = z.idzakaznik left join adresa a on z.idadresa = a.idadresa
+where u.iductenka is null group by a.mesto order by pocetzakaznikubeznakupu desc;
+
+select a.mesto, count(z.idzakaznik) pocet from zakaznik z left join uctenka u on u.idzakaznik = z.idzakaznik inner join adresa a on a.idadresa = z.idadresa 
+where u.iductenka is null group by a.mesto order by pocet desc;
+/* Pohledy (views) */
+-- Vytvoř pohled prodejů (mesto, ulice, pocetProdeju, posledniNakup, Trzba) za mesto Konice
+create view ProdejeMesta AS
+select a.mesto, a.ulice, count(u.iductenka) pocetprodeju, MAX(u.datumnakupu) posledninakup, sum(u.castka) trzba
+from uctenka u join prodejna p on p.idprodejna = u.idprodejna join adresa a on a.idadresa = p.idadresa --where a.mesto = 'Konice' 
+group by a.mesto, a.ulice;
+
+select * from prodejemesta;
+
+delete from uctenka where iductenka = 861;
+
+insert into uctenka (iductenka, idprodejna, idzamestnanec, idzakaznik, datumnakupu, castka, cislodokladu) values (555, 55, 55, ...
+
+/* Samostatná práce */
+-- Vytvoř pohled, který bude ukazovat vývoj Tržeb našeho obchodního řetězce po letech a městech. 
+select view v_vyvojtrzeb as
+select a.mesto, strftime('%Y', u.datumnakupu) as rok, sum(u.castka) as celkovetrzby from uctenka u 
+left join prodejna p on u.idprodejna = p.idprodejna 
+left join adresa a on a.idadresa = p.IDAdresa
+group by a.mesto, rok;
+--nebo
+select view v_prodejepoletech as                                                                                                                  
+select a.mesto, substr(u.datumnakupu, 1, 4) as rok, sum(u.castka) trzba from uctenka u join prodejna p on p.idprodejna = u.IDProdejna
+join adresa a on a.idadresa = p.idadresa group by a.mesto, rok ;                                                                                                                  
+                                                                                                                  
+   --du3  
+--1 v jakem meste mam nejvice zakazniku ve veku mei 20 a 30 a jaka je jejich prumerna utrata
+select a.mesto, count(z.idzakaznik) as pocetzakazniku,  avg(u.castka) as prumernautrata, z.datumnarozeni 
+from uctenka u join  zakaznik z on u.idzakaznik = z.idzakaznik join adresa a on z.idadresa = a.IDAdresa
+where (date() - datumnarozeni) between 20 and 30
+group by a.mesto,  z.datumnarozeni order by prumernautrata desc;                                                                                                                  ;                                                                                                                 
+--2 udelejte vyvoj prodeju po letech a mesicich za prodejnu s adresou "na Baních 1475"
+select  substr(u.datumnakupu, 1, 4) as rok, substr(u.datumnakupu, 6, 2) as mesic, sum(u.castka) as trzba
+from uctenka u  join  prodejna p on u.idprodejna = p.idprodejna join adresa a on p.idadresa = a.IDAdresa
+where  a.cislopopisne = 1475  and a.ulice like '%Na Baních%' group by rok, mesic ;                                                                                                                 
+                                                                                                                                                                                                                     
+--3 chtela bych ziskat vetsi pocet registrovanych zakazniku, v první vlně bych chtěl reklamu cílit do prodejen, kde mám nejvyšší počet nákupů od 
+--neregistrovaných zákazníků. Zjistěte které  jsou. V případě stejného počtu klientů upřednostníme prodejny s větší tržbou                                                                                                                  
+  select count(iductenka) as pocetnakupu, idprodejna from uctenka where idzakaznik is null group by idprodejna order by pocetnakupu desc;
+                                                                                                                  
+  select count(iductenka) as pocetnakupu, sum(castka) as trzba, idprodejna from uctenka where idzakaznik is null 
+ group by idprodejna order by trzba desc;                                                                                                                

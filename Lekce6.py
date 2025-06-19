@@ -4,7 +4,7 @@ class Employee:
         self.position = position
         self.holiday_entitlement = holiday_entitlement
 
-    def get_info(self)
+    def get_info(self):
         return f"Zaměstnanec {self.name} pracuje na pozici {self.position}."
 
     def take_holiday(self, days):
